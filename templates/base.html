@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel = "stylesheet" href="{{url_for('static',filename = 'css/w3.css')}}">
+    <title>LOGIN USER</title>
+</head>
+<body>
+    <div class = "w3-container w3-padding w3-indigo">
+        USER LOGIN v1.0
+        {% block logout %}
+        {% endblock %}
+    </div>
+    <div class = "w3-container w3-padding-16">
+        {% block content %}
+        {% endblock %}
+    </div>
+    <center>
+        <hr/>
+        Copyright &copy, YburlasJaphetPaul 2026
+    </center> 
+</body>
+</html>

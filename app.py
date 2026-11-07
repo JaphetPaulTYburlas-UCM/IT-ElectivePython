@@ -1,91 +1,52 @@
-'''
-	python mysql database 
-'''
-from mysql.connector import connect
-from tabulate import tabulate
-from os import system
+import sys
+sys.path.insert(0,'db/')
 
-def updatestudent(**kwargs)->bool:
-    keys:list = list(kwargs.keys())
-    values:list = list(kwargs.values())
-    datalist:list = []
-    for i in range(1,len(keys)):
-        datalist.append("`"+keys[i]+"`='"+values[i]+"'")
-    fields:str = ",".join(datalist)
-    sql:str = f"UPDATE `students` SET {fields} WHERE `{keys[0]}`='{values[0]}'"
-    conn:any = connect(
-        host='127.0.0.1',   #local database server
-        database='pythonpm',
-        user='root',
-        password='',
-    )
-    cursor:any = conn.cursor()
-    cursor.execute(sql)
-    conn.commit()
-    conn.close()
-    return True if cursor.rowcount>0 else False
+from flask import Flask, request,redirect,url_for,flash,session,render_template
+from dbhelper import *
 
-def deletestudent(**kwargs)->bool:
-    keys:list = list(kwargs.keys())
-    values:list = list(kwargs.values())
-    sql:str = f"DELETE FROM `students` WHERE `{keys[0]}`='{values[0]}'"
-    conn:any = connect(
-        host='127.0.0.1',   #local database server
-        database='pythonpm',
-        user='root',
-        password='',
-    )
-    cursor:any = conn.cursor()
-    cursor.execute(sql)
-    conn.commit()
-    conn.close()
-    return True if cursor.rowcount>0 else False
+app:any = Flask(__name__)
+app.secret_key ='dc269212b6164b8b95e38c288a6cb351'
 
-def addstudent(**kwargs)->bool:
-    keys:list = list(kwargs.keys())
-    values:list = list(kwargs.values())
-    fields:str = ",".join(keys)
-    data:str = "','".join(values)
-    sql:str = f"INSERT INTO `students`({fields}) VALUES('{data}')"
-    conn:any = connect(
-        host='127.0.0.1',   #local database server
-        database='pythonpm',
-        user='root',
-        password='',
-    )
-    cursor:any = conn.cursor()
-    cursor.execute(sql) #prepare the data to storing to the db
-    conn.commit() #store the prepared data
-    conn.close()    #close the database connection, DO NOT FORGET
-    return True if cursor.rowcount>0 else False
-    
+@app.after_request
+def after_request(response)->None:
+    response.headers['Cache-Control']="no-cache, no-store,must-revalidate"
+    return response
 
-def getall()->None:
-    #system('cls')
-    conn:any = connect(
-        host='127.0.0.1',   #local database server
-        database='pythonpm',
-        user='root',
-        password='',
-    )
-    cursor:any = conn.cursor()
-    sql:str = "SELECT * FROM `students`"
-    cursor.execute(sql)
-    data:list = cursor.fetchall()
-    conn.close()
-    # print(data)
-    # for item in data:
-        # print(f"{item['id']}\t{item['idno']}\t{item['lastname']}\t{item['firstname']}\t{item['course']}\t{item['level']}")
-    header=['ID','IDNO','LASTNAME','FIRSTNAME','COURSE','LEVEL']
-    print(tabulate(data, headers=header, tablefmt="grid"))
-def main()->None:
-    #getall()
-    #addstudent(idno='1006',lastname='uehara',firstname='ai',course='bsit',level='4')
-    getall()
-    updatestudent(idno='1000',lastname='fuji',firstname='kanna',course='bscs',level='1')
-    getall()
-    
-    
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-if __name__=="__main__":
-    main()
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    print('LOGGED OUT')
+    return redirect(url_for('index'))
+
+
+@app.route('/main')
+def main():
+    email = session.get('email')
+    if email != None:
+        slist = getall('students')
+        return render_template('main.html', students=slist)
+    print('INVALID USER')
+    return redirect(url_for('index'))
+
+
+@app.route('/userlogin', methods=['POST'])
+def userlogin():
+    email = request.form.get('email', '')
+    password = request.form.get('password', '')
+    user = getrecord('users', email=email, password=password)
+    session.clear()
+    if len(user) > 0:
+        print('LOGIN SUCCESS')
+        session['email'] = email
+        return redirect(url_for('main'))
+    print('LOGIN FAILED')
+    return redirect(url_for('index'))
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
